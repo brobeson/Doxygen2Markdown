@@ -128,6 +128,14 @@ class ClassDocumentation:
         name(str): The name of the class with namespaces. For example: ``std::vector``.
     """
 
+    skipped_tags = [
+        "basecompoundref",
+        "inheritancegraph",
+        "collaborationgraph",
+        "location",
+        "listofallmembers",
+    ]
+
     def __init__(self, file_path: str):
         self.file_path = file_path
         tree = ElementTree.parse(file_path)
@@ -138,36 +146,13 @@ class ClassDocumentation:
         self.language = root.attrib["language"]
         self.sections: List[Section] = []
         self.location = _find_text(root, "includes")
-        for tag in root:
-            if tag.tag == "briefdescription":
-                self.brief = tag.text
-                if isinstance(self.brief, str):
-                    self.brief = self.brief.strip()
-            elif tag.tag == "compoundname":
-                self.name = self.__get_class_name(tag)
-            elif tag.tag == "detaileddescription":
-                self.detailed = self.__get_detailed_description(tag)
-            elif tag.tag == "sectiondef":
-                self.sections.append(Section(tag))
-            else:
-                logging.warning("Skipping <%s> in %s", tag.tag, self.file_path)
+        self.brief = _find_text(root, "briefdescription")
+        self.name = _find_text(root, "compoundname")
+        self.detailed = _find_text(root, "detaileddescription/para")
+        self.sections = [Section(tag) for tag in root.iter("sectiondef")]
         self.sections.sort()
-
-    def __get_class_name(self, xml_tag: Optional[ElementTree.Element]) -> str:
-        if xml_tag is None:
-            raise MissingTag("compoundname", self.file_path)
-        if xml_tag.text is None:
-            raise MissingValue("compoundname", self.file_path)
-        return xml_tag.text
-
-    def __get_detailed_description(self, xml_tag: Optional[ElementTree.Element]) -> str:
-        if xml_tag is None:
-            return ""
-        text = ""
-        for para_tag in xml_tag.findall("para"):
-            if para_tag.text:
-                text = text + para_tag.text.strip() + "\n\n"
-        return text.strip()
+        for tag in ClassDocumentation.skipped_tags:
+            logging.warning("Skipping <%s> in %s", tag, self.file_path)
 
 
 def _find_text(tag: ElementTree.Element, child: str) -> str:
