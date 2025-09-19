@@ -22,7 +22,7 @@ def find_xml_files(input_path: str) -> List[str]:
     return files
 
 
-def read_xml_file(file_path: str, I: str) -> Optional[class_reader.ClassDocumentation]:
+def read_xml_file(file_path: str) -> Optional[class_reader.ClassDocumentation]:
     """
     Read and parse a Doxygen XML file.
 
@@ -35,7 +35,6 @@ def read_xml_file(file_path: str, I: str) -> Optional[class_reader.ClassDocument
     file_name = os.path.basename(file_path)
     if file_name.startswith("class"):
         logging.info("Processing %s", file_name)
-        return class_reader.ClassDocumentation(file_path, I)
-    else:
-        logging.warning("Skipping %s", file_name)
+        return class_reader.ClassDocumentation(file_path)
+    logging.warning("Skipping %s", file_name)
     return None
