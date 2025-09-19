@@ -1,7 +1,7 @@
 """Convert Doxygen XML output to Markdown files."""
 
 import logging
-from dox_md import cli, markdown_writer, xml_processor
+from dox_md import cli, xml_processor, documentation
 
 channel = logging.StreamHandler()
 channel.setFormatter(cli.LogFormatter())
@@ -12,6 +12,8 @@ logger.setLevel(logging.INFO)
 options = cli.parse_command_line()
 logger.setLevel(options.log_level.upper())
 xml_files = xml_processor.find_xml_files(options.input)
-xml_processor.process_xml_files(
-    xml_files, options.I, markdown_writer.Writer(options.output)
-)
+docs = documentation.Documentation(options.output)
+for xml_file in xml_files:
+    parsed_xml = xml_processor.read_xml_file(xml_file, options.I)
+    if parsed_xml is not None:
+        docs.write_class(parsed_xml)
