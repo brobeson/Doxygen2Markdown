@@ -1,5 +1,6 @@
 """Bridge between Doxygen XML and Markdown output."""
 
+import logging
 import os
 from typing import List, Tuple
 from dox_md import class_reader, markdown
@@ -42,6 +43,9 @@ class Documentation:
             if docs.detailed:
                 file.write_heading(2, "Detailed Description")
                 file.write_line(docs.detailed)
+                file.write_line()
+            for section in docs.sections:
+                _write_detailed_section(file, section, docs.name)
 
 
 def _full_md_file_path(root: str, kind: str, name: str) -> str:
@@ -74,7 +78,7 @@ def _write_function_briefs(file: markdown.File, section: class_reader.Section) -
         ],
     ) as table:
         for member in _combine_brief_section(section):
-            table.write_row(member)
+            table.write_row((f"`{member[0]}`", member[1]))
 
 
 def _combine_brief_section(section: class_reader.Section) -> List[Tuple[str, str]]:
@@ -89,7 +93,7 @@ def _combine_brief_section(section: class_reader.Section) -> List[Tuple[str, str
             if name == member.name and member.brief:
                 t = (name, member.brief)
         combined.append(t)
-    return [(f"`{m[0]}`", m[1]) for m in combined]
+    return [(f"{m[0]}", m[1]) for m in combined]
 
 
 def _write_variable_briefs(
@@ -106,3 +110,29 @@ def _write_variable_briefs(
             table.write_row(
                 (f"`{member.type} {member.name} {member.value}`", member.brief)
             )
+
+
+def _write_detailed_section(
+    file: markdown.File, section: class_reader.Section, class_name: str
+) -> None:
+    if section.members:
+        if isinstance(section.members[0], class_reader.Function):
+            _write_function_details(file, section, class_name)
+        else:
+            logging.warning(
+                "Skipping output of %s details section", type(section.members[0])
+            )
+
+
+def _write_function_details(
+    file: markdown.File, section: class_reader.Section, class_name: str
+) -> None:
+    for member in _combine_brief_section(section):
+        heading = f"`{class_name}::{member[0]}`"
+        file.write_heading(3, heading)
+        for m in section.members:
+            if m.name == member[0]:
+                with markdown.CodeBlock(file, "c++") as block:
+                    block.write_code(f"{m.type} {m.name} {m.arguments}")  # type: ignore
+                if m.details:
+                    file.write_line(m.details)

@@ -1,6 +1,7 @@
 """Read Doxygen XML files that document classes."""
 
 # cspell:ignore briefdescription compounddef compoundname detaileddescription sectiondef argsstring
+# cspell:ignore basecompoundref collaborationgraph inheritancegraph listofallmembers
 
 from dataclasses import dataclass
 import logging
@@ -22,6 +23,7 @@ class Member:
     type: str
     name: str
     brief: str
+    details: str
 
 
 @dataclass
@@ -68,6 +70,7 @@ class Section:
                         _find_text(child, "type"),
                         _find_text(child, "name"),
                         _find_text(child, "briefdescription"),
+                        _find_text(child, "detaileddescription"),
                         _find_text(child, "argsstring"),
                     )
                 )
@@ -77,6 +80,7 @@ class Section:
                         _find_text(child, "type"),
                         _find_text(child, "name"),
                         _find_text(child, "briefdescription"),
+                        _find_text(child, "detaileddescription"),
                         _find_text(child, "initializer"),
                     )
                 )
