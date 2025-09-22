@@ -44,6 +44,11 @@ def parse_command_line() -> argparse.Namespace:
         default="warning",
     )
     parser.add_argument(
+        "--clang-format",
+        help="Format code snippets with clang-format. Set the format style to a value accepted by "
+        "`clang-format --style`. Example: `--clang-format=LLVM`.",
+    )
+    parser.add_argument(
         "input", help="The path to the directory containing Doxygen XML."
     )
     parser.add_argument("output", help="Path to the directory to write Markdown files.")
