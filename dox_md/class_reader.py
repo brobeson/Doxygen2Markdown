@@ -5,8 +5,22 @@
 
 from dataclasses import dataclass
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 from xml.etree import ElementTree
+
+
+@dataclass
+class Parameter:
+    """
+    Represents a function parameter.
+
+    Attributes:
+        name(str): The name of the parameter.
+        documentation(str): The documentation for the parameter.
+    """
+
+    name: str
+    documentation: str
 
 
 @dataclass
@@ -32,10 +46,12 @@ class Function(Member):
     Represents a function.
 
     Attributes:
-        arguments(str): The complete set of function arguments, with parentheses.
+        parameter(str): The complete set of function parameters, with parentheses.
+        parameter_details(List[Parameter]): The detailed documentation for each function parameter.
     """
 
-    arguments: str
+    parameters: str
+    parameter_details: List[Parameter]
 
 
 @dataclass
@@ -72,6 +88,9 @@ class Section:
                         _find_text(child, "briefdescription"),
                         _find_text(child, "detaileddescription"),
                         _find_text(child, "argsstring"),
+                        _read_parameters(
+                            child.find("detaileddescription/para/parameterlist")
+                        ),
                     )
                 )
             if kind == "variable":
@@ -143,3 +162,20 @@ class ClassDocumentation:
 
 def _find_text(tag: ElementTree.Element, child: str) -> str:
     return tag.findtext(child, default="").strip()
+
+
+def _read_parameters(tag: Optional[ElementTree.Element]) -> List[Parameter]:
+    if tag is None:
+        return []
+    parameters: List[Parameter] = []
+    parameters = [
+        _read_parameter(parameter_item) for parameter_item in tag.iter("parameteritem")
+    ]
+    return parameters
+
+
+def _read_parameter(tag: ElementTree.Element) -> Parameter:
+    return Parameter(
+        _find_text(tag, "parameternamelist/parametername"),
+        _find_text(tag, "parameterdescription/para"),
+    )

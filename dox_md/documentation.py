@@ -133,6 +133,16 @@ def _write_function_details(
         for m in section.members:
             if m.name == member[0]:
                 with markdown.CodeBlock(file, "c++") as block:
-                    block.write_code(f"{m.type} {m.name} {m.arguments}")  # type: ignore
+                    block.write_code(f"{m.type} {m.name} {m.parameters}")  # type: ignore
+                if m.parameter_details:
+                    with markdown.Table(
+                        file,
+                        [
+                            ("Parameter", markdown.Table.Alignment.LEFT),
+                            ("Description", markdown.Table.Alignment.LEFT),
+                        ],
+                    ) as table:
+                        for parameter in m.parameter_details:
+                            table.write_row([parameter.name, parameter.documentation])
                 if m.details:
                     file.write_line(m.details)
