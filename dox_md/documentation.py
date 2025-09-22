@@ -2,7 +2,8 @@
 
 import logging
 import os
-from typing import List, Tuple
+import subprocess
+from typing import List, Optional, Tuple
 from dox_md import class_reader, markdown
 
 
@@ -12,13 +13,15 @@ class Documentation:
 
     Attributes:
         root_directory(str): Write the Markdown files in this directory.
+        format_style(Optional[str]): If set, invoke clang-format with this style on code snippets.
     """
 
-    def __init__(self, root_directory: str) -> None:
+    def __init__(self, root_directory: str, format_style: Optional[str]) -> None:
         if os.path.exists(root_directory) and not os.path.isdir(root_directory):
             raise FileExistsError(f"{root_directory} exists, but is not a directory")
         os.makedirs(root_directory, exist_ok=True)
         self.root_directory = root_directory
+        self.format_style = format_style
 
     def write_class(self, docs: class_reader.ClassDocumentation) -> None:
         """
@@ -45,7 +48,7 @@ class Documentation:
                 file.write_line(docs.detailed)
                 file.write_line()
             for section in docs.sections:
-                _write_detailed_section(file, section, docs.name)
+                _write_detailed_section(file, section, docs.name, self.format_style)
 
 
 def _full_md_file_path(root: str, kind: str, name: str) -> str:
@@ -113,11 +116,14 @@ def _write_variable_briefs(
 
 
 def _write_detailed_section(
-    file: markdown.File, section: class_reader.Section, class_name: str
+    file: markdown.File,
+    section: class_reader.Section,
+    class_name: str,
+    format_style: Optional[str],
 ) -> None:
     if section.members:
         if isinstance(section.members[0], class_reader.Function):
-            _write_function_details(file, section, class_name)
+            _write_function_details(file, section, class_name, format_style)
         else:
             logging.warning(
                 "Skipping output of %s details section", type(section.members[0])
@@ -125,7 +131,10 @@ def _write_detailed_section(
 
 
 def _write_function_details(
-    file: markdown.File, section: class_reader.Section, class_name: str
+    file: markdown.File,
+    section: class_reader.Section,
+    class_name: str,
+    format_style: Optional[str],
 ) -> None:
     for member in _combine_brief_section(section):
         heading = f"`{class_name}::{member[0]}`"
@@ -133,8 +142,8 @@ def _write_function_details(
         for m in section.members:
             if m.name == member[0]:
                 with markdown.CodeBlock(file, "c++") as block:
-                    block.write_code(f"{m.type} {m.name} {m.parameters}")  # type: ignore
-                if m.parameter_details:
+                    block.write_code(_format_code(f"{m.type} {m.name} {m.parameters}", format_style))  # type: ignore
+                if m.parameter_details:  # type: ignore
                     with markdown.Table(
                         file,
                         [
@@ -142,7 +151,21 @@ def _write_function_details(
                             ("Description", markdown.Table.Alignment.LEFT),
                         ],
                     ) as table:
-                        for parameter in m.parameter_details:
+                        for parameter in m.parameter_details:  # type: ignore
                             table.write_row([parameter.name, parameter.documentation])
                 if m.details:
                     file.write_line(m.details)
+
+
+def _format_code(code: str, format_style: Optional[str]) -> str:
+    if format_style:
+        result = subprocess.run(
+            ["clang-format", "--style=LLVM"],
+            input=code,
+            capture_output=True,
+            check=False,
+            encoding="utf-8",
+        )
+        if result.returncode == 0 and result.stdout:
+            return result.stdout.strip()
+    return code
