@@ -3,7 +3,7 @@
 import logging
 import os
 import subprocess
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from dox_md import class_reader, markdown
 
 
@@ -14,6 +14,8 @@ class Documentation:
     Attributes:
         root_directory(str): Write the Markdown files in this directory.
         format_style(Optional[str]): If set, invoke clang-format with this style on code snippets.
+        class_index(Dict[str, str]): Mapping from full class name to output Markdown file. This is
+        used to write the class index Markdown file.
     """
 
     def __init__(self, root_directory: str, format_style: Optional[str]) -> None:
@@ -22,6 +24,7 @@ class Documentation:
         os.makedirs(root_directory, exist_ok=True)
         self.root_directory = root_directory
         self.format_style = format_style
+        self.class_index: Dict[str, str] = {}
 
     def write_class(self, docs: class_reader.ClassDocumentation) -> None:
         """
@@ -49,6 +52,17 @@ class Documentation:
                 file.write_line()
             for section in docs.sections:
                 _write_detailed_section(file, section, docs.name, self.format_style)
+        self.class_index[docs.name] = os.path.relpath(filename, self.root_directory)
+
+    def write_class_index(self) -> None:
+        """Write the class index Markdown file."""
+        filename = os.path.join(self.root_directory, "class_index.md")
+        with open(filename, mode="w", encoding="utf-8") as stream:
+            file = markdown.File(stream)
+            file.write_heading(1, "Class Index")
+            with markdown.ItemizedList(file) as lst:
+                for name, index_filename in _convert_to_name_index(self.class_index):
+                    lst.write(f"[`{name}`]({index_filename})")
 
 
 def _full_md_file_path(root: str, kind: str, name: str) -> str:
@@ -169,3 +183,11 @@ def _format_code(code: str, format_style: Optional[str]) -> str:
         if result.returncode == 0 and result.stdout:
             return result.stdout.strip()
     return code
+
+
+def _convert_to_name_index(index: Dict[str, str]) -> List[Tuple[str, str]]:
+    name_index: List[Tuple[str, str]] = []
+    for name, file in index.items():
+        name_index.append((name, file))
+    name_index.sort()
+    return name_index
