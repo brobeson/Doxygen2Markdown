@@ -55,7 +55,7 @@ class File:
 
     def write_heading(self, level: int, heading: str) -> None:
         """
-        Write a Markdown heading to the current file.
+        Write a Markdown heading to the current file. This includes a blank line after the heading.
 
         Args:
             level (int): The heading level. This must be in the range [1, 6].
@@ -178,3 +178,31 @@ class Table:
             entry in ``columns`` must be an empty string.
         """
         self.md.write_line(f"|{'|'.join(columns)}|")
+
+
+class ItemizedList:
+    """
+    Write an itemized, or bulleted, list in a Markdown file. Nested lists are not supported.
+
+    Attributes:
+        md(File): Write the list in this file.
+    """
+
+    def __init__(self, md: File):
+        self.md = md
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def write(self, text: str) -> None:
+        """
+        Write a single list item to the list.
+
+        Args:
+            text (str): The text to write. This function adds the list bullet; ``text`` should
+            only be the actual text of the list item.
+        """
+        self.md.write_line(f"- {text}")
