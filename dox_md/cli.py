@@ -37,6 +37,7 @@ def parse_command_line() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Convert Doxygen XML output to Markdown files."
     )
+    parser.add_argument("--verbose", help="Print debug messages.", action="store_true")
     parser.add_argument(
         "input", help="The path to the directory containing Doxygen XML."
     )
