@@ -2,7 +2,8 @@
 
 import logging
 import os.path
-from typing import IO, Optional
+import re
+from typing import Any, IO, Optional, Union
 
 
 class Writer:
@@ -55,7 +56,19 @@ class Writer:
             heading (str): The heading text.
         """
         if self.file is not None:
-            self.file.write(f"{'#' * level} {heading}\n")
+            self.file.write(f"{'#' * level} {heading}\n\n")
+
+    def write_paragraph(self, text: Union[Any | None | str]) -> None:
+        """
+        Write a normal paragraph of text to the current file.
+
+        Args:
+            text (str): The paragraph text to write.
+        """
+        if self.file is None or not text:
+            return
+        text = re.sub(r"([\.!?]) ([A-Z])", r"\1\n\2", text)
+        self.file.write(f"{text}\n")
 
 
 def new_file(writer: Writer, file_path: str) -> Writer:

@@ -41,6 +41,10 @@ def _process_xml_file(file_path: str, md_writer: markdown_writer.Writer) -> None
         class_doc = ClassDocumentation(file_path)
         with markdown_writer.new_file(md_writer, file_name) as _:
             md_writer.write_heading(1, f"`{class_doc.name}`")
+            md_writer.write_paragraph(class_doc.brief)
+            if class_doc.detailed:
+                md_writer.write_heading(2, "Detailed Description")
+                md_writer.write_paragraph(class_doc.detailed)
     else:
         logging.warning("Skipping %s", file_name)
 
@@ -79,8 +83,16 @@ class ClassDocumentation:
         if root is None:
             raise MissingTag("compounddef", self.file_path)
         for tag in root:
-            if tag.tag == "compoundname":
+            if tag.tag == "briefdescription":
+                self.brief = tag.text
+                if isinstance(self.brief, str):
+                    self.brief = self.brief.strip()
+            elif tag.tag == "compoundname":
                 self.name = self.__get_class_name(tag)
+            elif tag.tag == "detaileddescription":
+                self.detailed = tag.text
+                if isinstance(self.detailed, str):
+                    self.detailed = self.detailed.strip()
             else:
                 logging.warning("Skipping <%s> in %s", tag.tag, self.file_path)
 
