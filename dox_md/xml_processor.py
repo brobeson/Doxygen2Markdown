@@ -90,9 +90,7 @@ class ClassDocumentation:
             elif tag.tag == "compoundname":
                 self.name = self.__get_class_name(tag)
             elif tag.tag == "detaileddescription":
-                self.detailed = tag.text
-                if isinstance(self.detailed, str):
-                    self.detailed = self.detailed.strip()
+                self.detailed = self.__get_detailed_description(tag)
             else:
                 logging.warning("Skipping <%s> in %s", tag.tag, self.file_path)
 
@@ -102,3 +100,12 @@ class ClassDocumentation:
         if xml_tag.text is None:
             raise MissingValue("compoundname", self.file_path)
         return xml_tag.text
+
+    def __get_detailed_description(self, xml_tag: Optional[ElementTree.Element]) -> str:
+        if xml_tag is None:
+            return ""
+        text = ""
+        for para_tag in xml_tag.findall("para"):
+            if para_tag.text:
+                text = text + para_tag.text.strip() + "\n\n"
+        return text.strip()
