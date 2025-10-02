@@ -3,7 +3,7 @@
 import logging
 import os.path
 import re
-from typing import Any, IO, Optional, Union
+from typing import Any, IO, List, Optional, Tuple, Union
 
 
 class Writer:
@@ -69,6 +69,25 @@ class Writer:
             return
         text = re.sub(r"([\.!?]) ([A-Z])", r"\1\n\2", text)
         self.file.write(f"{text}\n")
+
+    def write_badge(self, label: str, message: str, color: str) -> None:
+        if self.file is None:
+            return
+        badge_text = "![Static Badge](https://img.shields.io/badge/"
+        if label:
+            badge_text = f"{badge_text}{label}-"
+        if message:
+            badge_text = f"{badge_text}{message}-"
+        if color:
+            badge_text = f"{badge_text}{color}"
+        badge_text = f"{badge_text})"
+        self.file.write(f"{badge_text}\n")
+
+    def write_badges(self, badges: List[Tuple[str, str, str]]) -> None:
+        if self.file is not None:
+            for badge in badges:
+                self.write_badge(badge[0], badge[1], badge[2])
+            self.file.write("\n")
 
 
 def new_file(writer: Writer, file_path: str) -> Writer:

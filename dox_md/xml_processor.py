@@ -41,6 +41,9 @@ def _process_xml_file(file_path: str, md_writer: markdown_writer.Writer) -> None
         class_doc = ClassDocumentation(file_path)
         with markdown_writer.new_file(md_writer, file_name) as _:
             md_writer.write_heading(1, f"`{class_doc.name}`")
+            md_writer.write_badges(
+                [("Language", "C%2B%2B", "blue"), ("Kind", "Class", "blue")]
+            )
             md_writer.write_paragraph(class_doc.brief)
             if class_doc.detailed:
                 md_writer.write_heading(2, "Detailed Description")
@@ -82,6 +85,8 @@ class ClassDocumentation:
         root = tree.getroot().find("compounddef")
         if root is None:
             raise MissingTag("compounddef", self.file_path)
+        self.kind = root.attrib["kind"]
+        self.language = root.attrib["language"]
         for tag in root:
             if tag.tag == "briefdescription":
                 self.brief = tag.text
