@@ -12,4 +12,6 @@ logger.setLevel(logging.INFO)
 options = cli.parse_command_line()
 logger.setLevel(options.log_level.upper())
 xml_files = xml_processor.find_xml_files(options.input)
-xml_processor.process_xml_files(xml_files, markdown_writer.Writer(options.output))
+xml_processor.process_xml_files(
+    xml_files, options.I, markdown_writer.Writer(options.output)
+)

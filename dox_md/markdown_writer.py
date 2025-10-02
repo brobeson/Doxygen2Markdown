@@ -89,6 +89,13 @@ class Writer:
                 self.write_badge(badge[0], badge[1], badge[2])
             self.file.write("\n")
 
+    def write_code_block(self, language: str, code: str) -> None:
+        if self.file is None:
+            return
+        self.file.write(f"```{language}\n")
+        self.file.write(f"{code}\n")
+        self.file.write("```\n\n")
+
 
 def new_file(writer: Writer, file_path: str) -> Writer:
     """

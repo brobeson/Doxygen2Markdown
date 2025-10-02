@@ -23,7 +23,9 @@ def find_xml_files(input_path: str) -> List[str]:
     return files
 
 
-def process_xml_files(file_paths: List[str], writer: markdown_writer.Writer) -> None:
+def process_xml_files(
+    file_paths: List[str], header_search_path: str, writer: markdown_writer.Writer
+) -> None:
     """
     Read the Doxygen XML files.
 
@@ -31,19 +33,22 @@ def process_xml_files(file_paths: List[str], writer: markdown_writer.Writer) -> 
         file_paths (List[str]): The Doxygen XML files to process.
     """
     for file_path in file_paths:
-        _process_xml_file(file_path, writer)
+        _process_xml_file(file_path, header_search_path, writer)
 
 
-def _process_xml_file(file_path: str, md_writer: markdown_writer.Writer) -> None:
+def _process_xml_file(
+    file_path: str, header_search_path: str, md_writer: markdown_writer.Writer
+) -> None:
     file_name = os.path.basename(file_path)
     if file_name.startswith("class"):
         logging.info("Processing %s", file_name)
-        class_doc = ClassDocumentation(file_path)
+        class_doc = ClassDocumentation(file_path, header_search_path)
         with markdown_writer.new_file(md_writer, file_name) as _:
             md_writer.write_heading(1, f"`{class_doc.name}`")
             md_writer.write_badges(
                 [("Language", "C%2B%2B", "blue"), ("Kind", "Class", "blue")]
             )
+            md_writer.write_code_block("c++", f"#include <{class_doc.location}>")
             md_writer.write_paragraph(class_doc.brief)
             if class_doc.detailed:
                 md_writer.write_heading(2, "Detailed Description")
@@ -79,8 +84,9 @@ class ClassDocumentation:
         name(str): The name of the class with namespaces. For example: ``std::vector``.
     """
 
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, header_search_path: str):
         self.file_path = file_path
+        self.header_search_path = header_search_path
         tree = ElementTree.parse(file_path)
         root = tree.getroot().find("compounddef")
         if root is None:
@@ -96,6 +102,8 @@ class ClassDocumentation:
                 self.name = self.__get_class_name(tag)
             elif tag.tag == "detaileddescription":
                 self.detailed = self.__get_detailed_description(tag)
+            elif tag.tag == "location":
+                self.location = self.__get_location(tag)
             else:
                 logging.warning("Skipping <%s> in %s", tag.tag, self.file_path)
 
@@ -114,3 +122,8 @@ class ClassDocumentation:
             if para_tag.text:
                 text = text + para_tag.text.strip() + "\n\n"
         return text.strip()
+
+    def __get_location(self, tag: Optional[ElementTree.Element]) -> str:
+        if tag is None:
+            return ""
+        return tag.attrib["file"].replace(self.header_search_path, "")

@@ -44,6 +44,9 @@ def parse_command_line() -> argparse.Namespace:
         default="warning",
     )
     parser.add_argument(
+        "-I", help="Header search path; strip this from source code file locations."
+    )
+    parser.add_argument(
         "input", help="The path to the directory containing Doxygen XML."
     )
     parser.add_argument("output", help="Path to the directory to write Markdown files.")
