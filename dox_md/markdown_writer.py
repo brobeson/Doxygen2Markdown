@@ -3,7 +3,7 @@
 import logging
 import os.path
 import re
-from typing import Any, IO, List, Optional, Tuple, Union
+from typing import Any, IO, Iterable, List, Optional, Tuple, Union
 
 
 class Writer:
@@ -95,6 +95,41 @@ class Writer:
         self.file.write(f"```{language}\n")
         self.file.write(f"{code}\n")
         self.file.write("```\n\n")
+
+    def write_line(self, line: Optional[str] = None) -> None:
+        if self.file is not None:
+            if line is None:
+                self.file.write("\n")
+            else:
+                self.file.write(f"{line}\n")
+
+    def write_table_header(self, columns: Iterable[str], alignments: str) -> None:
+        if self.file is None:
+            return
+        if len(columns) != len(alignments):
+            raise RuntimeError(
+                "The alignment string must be the same length as the set of columns"
+            )
+        # self.file.write(f"|{'|'.join(columns)}|\n")
+        self.write_table_row(columns)
+        for alignment in alignments:
+            if alignment == "c":
+                self.file.write("|:-:")
+            elif alignment == "r":
+                self.file.write("|--:")
+            else:
+                if alignment != "l":
+                    logging.warning(
+                        "'%s' is invalid column alignment; valid options are 'l', 'c', and 'r'. Defaulting to 'l'.",
+                        alignment,
+                    )
+                self.file.write("|:--")
+        self.file.write("|\n")
+
+    def write_table_row(self, columns: Iterable[str]) -> None:
+        if self.file is None:
+            return
+        self.file.write(f"|{'|'.join(columns)}|\n")
 
 
 def new_file(writer: Writer, file_path: str) -> Writer:

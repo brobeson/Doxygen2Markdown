@@ -1,9 +1,10 @@
 """Read Doxygen XML files that document classes."""
 
-# cspell:ignore briefdescription compounddef compoundname detaileddescription
+# cspell:ignore briefdescription compounddef compoundname detaileddescription sectiondef
 
+from dataclasses import dataclass
 import logging
-from typing import Optional
+from typing import Dict, List, Optional
 from xml.etree import ElementTree
 
 
@@ -25,6 +26,51 @@ class MissingValue(MissingTag):
         return f"Missing value from tag <{self.tag}> from file {self.file}"
 
 
+@dataclass
+class Function:
+    type: Optional[str]
+    arguments: Optional[str]
+    name: Optional[str]
+    brief: Optional[str]
+
+
+class Section:
+    def __init__(self, tag: ElementTree.Element):
+        self.name = self.__read_name(tag.attrib)
+        self.members = []
+        for child in tag:
+            kind = child.attrib["kind"]
+            if kind == "function":
+                f = Function(
+                    child.findtext("type").strip(),
+                    child.findtext("argsstring").strip(),
+                    child.findtext("name").strip(),
+                    child.findtext("briefdescription").strip(),
+                )
+                # if f.arguments:
+                #     f.arguments = re.sub("\\s+", " ", f.arguments)
+                self.members.append(f)
+            else:
+                logging.warning('Skipping <%s kind="%s"', child.tag, kind)
+
+    def __read_name(self, attributes: Dict[str, str]) -> str:
+        kind = attributes["kind"]
+        if kind == "public-func":
+            logging.warning("Skipping 'public-func' section.")
+            return "Public Member Functions"
+        if kind == "public-static-attrib":
+            logging.warning("Skipping 'public-static-attrib' section.")
+            return "Static Public Attributes"
+        if kind == "public-static-func":
+            logging.warning("Skipping 'public-static-func' section.")
+            return "Static Public Member Functions"
+        logging.warning("Unknown <sectiondef> kind of '%s'", kind)
+        return ""
+
+    def __lt__(self, other) -> bool:
+        return self.name < other.name
+
+
 class ClassDocumentation:
     """
     Parse details for a class from Doxygen XML.
@@ -43,6 +89,7 @@ class ClassDocumentation:
             raise MissingTag("compounddef", self.file_path)
         self.kind = root.attrib["kind"]
         self.language = root.attrib["language"]
+        self.sections: List[Section] = []
         for tag in root:
             if tag.tag == "briefdescription":
                 self.brief = tag.text
@@ -54,8 +101,11 @@ class ClassDocumentation:
                 self.detailed = self.__get_detailed_description(tag)
             elif tag.tag == "location":
                 self.location = self.__get_location(tag)
+            elif tag.tag == "sectiondef":
+                self.sections.append(Section(tag))
             else:
                 logging.warning("Skipping <%s> in %s", tag.tag, self.file_path)
+        self.sections.sort()
 
     def __get_class_name(self, xml_tag: Optional[ElementTree.Element]) -> str:
         if xml_tag is None:

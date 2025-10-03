@@ -9,7 +9,12 @@
       "type": "debugpy",
       "request": "launch",
       "module": "dox_md",
-      "args": ["xml/", "docs/test/"]
+      "args": [
+        "xml/",
+        "docs/test/",
+        "-I",
+        "/home/brobeson/repositories/sab/redbone/include/sab/redbone/"
+      ]
     }
   ]
 }

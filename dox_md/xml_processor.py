@@ -3,7 +3,7 @@
 import glob
 import logging
 import os.path
-from typing import List
+from typing import List, Tuple
 from dox_md import class_reader, markdown_writer
 
 
@@ -49,8 +49,35 @@ def _process_xml_file(
             )
             md_writer.write_code_block("c++", f"#include <{class_doc.location}>")
             md_writer.write_paragraph(class_doc.brief)
+            for section in class_doc.sections:
+                _write_brief_section(section, md_writer)
             if class_doc.detailed:
                 md_writer.write_heading(2, "Detailed Description")
                 md_writer.write_paragraph(class_doc.detailed)
     else:
         logging.warning("Skipping %s", file_name)
+
+
+def _write_brief_section(
+    section: class_reader.Section, writer: markdown_writer.Writer
+) -> None:
+    writer.write_heading(2, section.name)
+    writer.write_table_header(("Function", "Description"), "ll")
+    for member in _combine_brief_section(section):
+        writer.write_table_row((f"`{member[0]}`", member[1]))
+    writer.write_line()
+
+
+def _combine_brief_section(section: class_reader.Section) -> List[Tuple[str, str]]:
+    combined: List[Tuple[str, str]] = []
+    names: List[str] = []
+    for member in section.members:
+        if member.name and member.name not in names:
+            names.append(member.name)
+    for name in names:
+        t = (name, "")
+        for member in section.members:
+            if name == member.name and member.brief:
+                t = (name, member.brief)
+        combined.append(t)
+    return combined
