@@ -1,6 +1,6 @@
 """Read Doxygen XML files that document classes."""
 
-# cspell:ignore briefdescription compounddef compoundname detaileddescription sectiondef
+# cspell:ignore briefdescription compounddef compoundname detaileddescription sectiondef argsstring
 
 from dataclasses import dataclass
 import logging
@@ -27,29 +27,77 @@ class MissingValue(MissingTag):
 
 
 @dataclass
-class Function:
-    type: Optional[str]
-    arguments: Optional[str]
-    name: Optional[str]
-    brief: Optional[str]
+class Member:
+    """
+    Represents a class member. This can be a type alias, function, or data.
+
+    Attributes:
+        type(str): The variable type, function return type, or alias source type.
+        name(str): The name of the member.
+        brief(str): The Doxygen ``@brief`` description.
+    """
+
+    type: str
+    name: str
+    brief: str
+
+
+@dataclass
+class Function(Member):
+    """
+    Represents a function.
+
+    Attributes:
+        arguments(str): The complete set of function arguments, with parentheses.
+    """
+
+    arguments: str
+
+
+@dataclass
+class Variable(Member):
+    """
+    Represents a variable or constant.
+
+    Attributes:
+        value(str): The initial value of the variable.
+    """
+
+    value: str
 
 
 class Section:
+    """
+    Represents a section of the overall ``@brief`` description.
+
+    Attributes:
+        name(str): The human-readable name of the section.
+        members(List[Member]): A list of all the class members that are in this section.
+    """
+
     def __init__(self, tag: ElementTree.Element):
         self.name = self.__read_name(tag.attrib)
-        self.members = []
+        self.members: List[Member] = []
         for child in tag:
             kind = child.attrib["kind"]
             if kind == "function":
-                f = Function(
-                    child.findtext("type").strip(),
-                    child.findtext("argsstring").strip(),
-                    child.findtext("name").strip(),
-                    child.findtext("briefdescription").strip(),
+                self.members.append(
+                    Function(
+                        _find_text(child, "type"),
+                        _find_text(child, "name"),
+                        _find_text(child, "briefdescription"),
+                        _find_text(child, "argsstring"),
+                    )
                 )
-                # if f.arguments:
-                #     f.arguments = re.sub("\\s+", " ", f.arguments)
-                self.members.append(f)
+            if kind == "variable":
+                self.members.append(
+                    Variable(
+                        _find_text(child, "type"),
+                        _find_text(child, "name"),
+                        _find_text(child, "briefdescription"),
+                        _find_text(child, "initializer"),
+                    )
+                )
             else:
                 logging.warning('Skipping <%s kind="%s"', child.tag, kind)
 
@@ -127,3 +175,10 @@ class ClassDocumentation:
         if tag is None:
             return ""
         return tag.attrib["file"].replace(self.header_search_path, "")
+
+
+def _find_text(tag: ElementTree.Element, child: str) -> str:
+    text = tag.findtext(child)
+    if text is None:
+        return ""
+    return text.strip()

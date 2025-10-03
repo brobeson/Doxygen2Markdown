@@ -61,7 +61,17 @@ def _process_xml_file(
 def _write_brief_section(
     section: class_reader.Section, writer: markdown_writer.Writer
 ) -> None:
-    writer.write_heading(2, section.name)
+    if section.members:
+        writer.write_heading(2, section.name)
+        if isinstance(section.members[0], class_reader.Function):
+            _write_function_briefs(section, writer)
+        elif isinstance(section.members[0], class_reader.Variable):
+            _write_variable_briefs(section.members, writer)  # type: ignore
+
+
+def _write_function_briefs(
+    section: class_reader.Section, writer: markdown_writer.Writer
+) -> None:
     writer.write_table_header(("Function", "Description"), "ll")
     for member in _combine_brief_section(section):
         writer.write_table_row((f"`{member[0]}`", member[1]))
@@ -81,3 +91,14 @@ def _combine_brief_section(section: class_reader.Section) -> List[Tuple[str, str
                 t = (name, member.brief)
         combined.append(t)
     return combined
+
+
+def _write_variable_briefs(
+    members: List[class_reader.Variable], writer: markdown_writer.Writer
+) -> None:
+    writer.write_table_header(("Attribute", "Description"), "ll")
+    for member in members:
+        writer.write_table_row(
+            (f"`{member.type} {member.name} {member.value}`", member.brief)
+        )
+    writer.write_line()
