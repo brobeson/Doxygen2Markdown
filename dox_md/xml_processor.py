@@ -3,8 +3,8 @@
 import glob
 import logging
 import os.path
-from typing import List, Tuple
-from dox_md import class_reader, markdown_writer
+from typing import List, Optional
+from dox_md import class_reader
 
 
 def find_xml_files(input_path: str) -> List[str]:
@@ -22,83 +22,20 @@ def find_xml_files(input_path: str) -> List[str]:
     return files
 
 
-def process_xml_files(
-    file_paths: List[str], header_search_path: str, writer: markdown_writer.Writer
-) -> None:
+def read_xml_file(file_path: str, I: str) -> Optional[class_reader.ClassDocumentation]:
     """
-    Read the Doxygen XML files.
+    Read and parse a Doxygen XML file.
 
     Args:
-        file_paths (List[str]): The Doxygen XML files to process.
+        file_path (str): The full path the Doxygen XML file.
+
+    Returns:
+        Optional[class_reader.ClassDocumentation]: The parsed documentation.
     """
-    for file_path in file_paths:
-        _process_xml_file(file_path, header_search_path, writer)
-
-
-def _process_xml_file(
-    file_path: str, header_search_path: str, md_writer: markdown_writer.Writer
-) -> None:
     file_name = os.path.basename(file_path)
     if file_name.startswith("class"):
         logging.info("Processing %s", file_name)
-        class_doc = class_reader.ClassDocumentation(file_path, header_search_path)
-        with markdown_writer.new_file(md_writer, file_name) as _:
-            md_writer.write_heading(1, f"`{class_doc.name}`")
-            md_writer.write_badges(
-                [("Language", "C%2B%2B", "blue"), ("Kind", "Class", "blue")]
-            )
-            md_writer.write_code_block("c++", f"#include <{class_doc.location}>")
-            md_writer.write_paragraph(class_doc.brief)
-            for section in class_doc.sections:
-                _write_brief_section(section, md_writer)
-            if class_doc.detailed:
-                md_writer.write_heading(2, "Detailed Description")
-                md_writer.write_paragraph(class_doc.detailed)
+        return class_reader.ClassDocumentation(file_path, I)
     else:
         logging.warning("Skipping %s", file_name)
-
-
-def _write_brief_section(
-    section: class_reader.Section, writer: markdown_writer.Writer
-) -> None:
-    if section.members:
-        writer.write_heading(2, section.name)
-        if isinstance(section.members[0], class_reader.Function):
-            _write_function_briefs(section, writer)
-        elif isinstance(section.members[0], class_reader.Variable):
-            _write_variable_briefs(section.members, writer)  # type: ignore
-
-
-def _write_function_briefs(
-    section: class_reader.Section, writer: markdown_writer.Writer
-) -> None:
-    writer.write_table_header(("Function", "Description"), "ll")
-    for member in _combine_brief_section(section):
-        writer.write_table_row((f"`{member[0]}`", member[1]))
-    writer.write_line()
-
-
-def _combine_brief_section(section: class_reader.Section) -> List[Tuple[str, str]]:
-    combined: List[Tuple[str, str]] = []
-    names: List[str] = []
-    for member in section.members:
-        if member.name and member.name not in names:
-            names.append(member.name)
-    for name in names:
-        t = (name, "")
-        for member in section.members:
-            if name == member.name and member.brief:
-                t = (name, member.brief)
-        combined.append(t)
-    return combined
-
-
-def _write_variable_briefs(
-    members: List[class_reader.Variable], writer: markdown_writer.Writer
-) -> None:
-    writer.write_table_header(("Attribute", "Description"), "ll")
-    for member in members:
-        writer.write_table_row(
-            (f"`{member.type} {member.name} {member.value}`", member.brief)
-        )
-    writer.write_line()
+    return None
