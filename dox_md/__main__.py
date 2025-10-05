@@ -14,6 +14,6 @@ logger.setLevel(options.log_level.upper())
 xml_files = xml_processor.find_xml_files(options.input)
 docs = documentation.Documentation(options.output)
 for xml_file in xml_files:
-    parsed_xml = xml_processor.read_xml_file(xml_file, options.I)
+    parsed_xml = xml_processor.read_xml_file(xml_file)
     if parsed_xml is not None:
         docs.write_class(parsed_xml)

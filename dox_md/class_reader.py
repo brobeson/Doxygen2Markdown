@@ -128,9 +128,8 @@ class ClassDocumentation:
         name(str): The name of the class with namespaces. For example: ``std::vector``.
     """
 
-    def __init__(self, file_path: str, header_search_path: str):
+    def __init__(self, file_path: str):
         self.file_path = file_path
-        self.header_search_path = header_search_path
         tree = ElementTree.parse(file_path)
         root = tree.getroot().find("compounddef")
         if root is None:
@@ -138,6 +137,7 @@ class ClassDocumentation:
         self.kind = root.attrib["kind"]
         self.language = root.attrib["language"]
         self.sections: List[Section] = []
+        self.location = _find_text(root, "includes")
         for tag in root:
             if tag.tag == "briefdescription":
                 self.brief = tag.text
@@ -147,8 +147,6 @@ class ClassDocumentation:
                 self.name = self.__get_class_name(tag)
             elif tag.tag == "detaileddescription":
                 self.detailed = self.__get_detailed_description(tag)
-            elif tag.tag == "location":
-                self.location = self.__get_location(tag)
             elif tag.tag == "sectiondef":
                 self.sections.append(Section(tag))
             else:
@@ -171,14 +169,6 @@ class ClassDocumentation:
                 text = text + para_tag.text.strip() + "\n\n"
         return text.strip()
 
-    def __get_location(self, tag: Optional[ElementTree.Element]) -> str:
-        if tag is None:
-            return ""
-        return tag.attrib["file"].replace(self.header_search_path, "")
-
 
 def _find_text(tag: ElementTree.Element, child: str) -> str:
-    text = tag.findtext(child)
-    if text is None:
-        return ""
-    return text.strip()
+    return tag.findtext(child, default="").strip()
