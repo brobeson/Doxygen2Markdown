@@ -4,26 +4,8 @@
 
 from dataclasses import dataclass
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List
 from xml.etree import ElementTree
-
-
-class MissingTag(Exception):
-    """Report that a required tag is missing from the Doxygen XML."""
-
-    def __init__(self, tag: str, file: str):
-        self.tag = tag
-        self.file = file
-
-    def __str__(self) -> str:
-        return f"Missing tag <{self.tag}> from file {self.file}"
-
-
-class MissingValue(MissingTag):
-    """Report that a required tag is present in the Doxygen XML, but is missing its value."""
-
-    def __str__(self) -> str:
-        return f"Missing value from tag <{self.tag}> from file {self.file}"
 
 
 @dataclass
@@ -141,7 +123,7 @@ class ClassDocumentation:
         tree = ElementTree.parse(file_path)
         root = tree.getroot().find("compounddef")
         if root is None:
-            raise MissingTag("compounddef", self.file_path)
+            raise RuntimeError(f"Missing tag <compounddef> from file {self.file_path}")
         self.kind = root.attrib["kind"]
         self.language = root.attrib["language"]
         self.sections: List[Section] = []
